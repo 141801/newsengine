@@ -3,19 +3,34 @@ require 'open-uri'
 require 'fileutils'
 require 'base64'
 
-time = Time.new
 @dict={}
-
-@storynum=5      #story num 
-@def_deep=10     #page deep copy
-@domain="http://vraku.com:8080"  #domain
-@url = 'https://www.bbc.com/zhongwen/simp/'  # target
-#@dir = '/autolab/'+time.year.to_s+time.month.to_s+time.day.to_s
-@dir='/autolab/'   #server dir saved
-@ignores=['/zhongwen/simp/institutional']  #ignore the links which  start with str in array
 @dic_file='./dict.txt'
 
-def  readdic
+@domain="http://vraku.com:8080"  #domain
+@dir='/autolab/'   #server dir saved
+@def_deep=2     #page deep copy
+
+@url = 'https://www.bbc.com/zhongwen/simp/'  # target
+@base_url='https://www.bbc.com'  
+
+@ignore_link_list=['/zhongwen/simp/institutional','#']  #ignore the links which  start with str in array
+@link_list=['/zhongwen/simp/']
+
+
+#支持div里面除去小div
+#[[div1,[div1_1,div1_2]],
+# [div2,[div2_1,div2_2]]]
+
+
+@home_div_list=[['//*[@id="comp-top-story-1"]',[]],
+                ['//*[@id="comp-top-story-2"]',[]],
+                ['//*[@id="comp-top-story-3"]',[]]]
+
+
+@sub_div_list=[['//*[@id="page"]/div/div[2]/div/div[1]/div[1]',['//*[@id="page"]/div/div[2]/div/div[1]/div[1]/div[1]/div/div/div[2]']]]
+
+
+def  readDic
   f=File.open(@dic_file) do |file|
      file.each_line do |labmen|
       @dict[labmen.split(",")[0]]=labmen.split(",")[1]
@@ -24,7 +39,7 @@ def  readdic
   f.close
 end
 
-def  savedic
+def  saveDic
  f=File.open(@dic_file,"w+") do |file|
      @dict.each{|s| file.puts(s[0]+","+s[1])}
  end
@@ -38,36 +53,68 @@ def prepare
   end
 end
 
-def  parse_node(_node,_deep)
-    _node.css('a').each do |nodea|
-              if !nodea[:href].start_with?("/zhongwen/simp/")  then
-             #        puts "will be removed"+nodea[:href]
-                    nodea.parent.remove    
-                    next              
-              end
-              if nodea[:href].start_with?(*@ignores)  then
-             #        puts "will be removed"+nodea[:href]
-                    nodea.parent.remove
-                    next
-              end
-              puts nodea[:href]
-              detailurl='https://www.bbc.com'+nodea[:href]
-              fname=nodea[:href]['/zhongwen/simp/'.length..nodea[:href].length-1]
-              #encoding_data = Base64.encode64(detailurl)  #ファイルの末尾
-              nodea[:href]=@domain+@dir+'/details/'+fname+'.html'   #rewrite the html link
-              if @dict[detailurl] then
-                 puts ("has collected "+fname)
-              else
-                 filepath='/details/'+fname+'.html' #file path
-                 getdetailpage(detailurl,filepath,_deep+1)
-              end
-          end
-      return    _node.to_html
-
+def  getSerialNum
+   t = Time.now      
+   tf="%10.9f" % t.to_f   #=> "1195280283.536151409"
+   return tf.to_s.split('.').join("")
 end
 
+def  parse_node(_node,_deep)
 
-def  getdoc(_url)
+    ##deal with <image scr>
+    _node.css('img').each do |image|
+       if !image.attribute("src").value.start_with?("http") then
+          image.attribute("src").value=@base_url+image.attribute("src").value
+       end
+    end
+ 
+     ##deal with div-src image
+     _node.css('div').each do |div|
+        if div.attribute("data-src") then
+             imagesrc=div.attribute("data-src")
+             div.replace '<img src="'+imagesrc+'"/>'
+        end
+    end
+
+     #######deal with <a>
+    _node.css('a').each do |nodea|
+
+              #expect /zh/XX   
+              #case1:  <ui><li><a href=random_url></li></ui>
+              #case2:  <image><a href=random_url></image>  
+              if nodea[:href].start_with?(*@ignore_link_list)  then
+                   begin
+                     nodea.parent.remove
+                   rescue =>e
+                     puts e
+                   end
+                   next
+              end
+              
+              if !nodea[:href].start_with?(*@link_list)  then
+                  begin
+                     nodea.parent.remove
+                   rescue =>e
+                     puts e
+                   end
+                   next       
+              end
+              puts  nodea[:href]
+              detailurl=@base_url+nodea[:href]
+              if !@dict[detailurl]
+                 fname=getSerialNum+'.html'
+                 nodea[:href]=@domain+@dir+'/details/'+fname   #rewrite the html link
+                 filepath='/details/'+fname   #file path
+                 getSubPage(detailurl,filepath,_deep+1)
+              else   
+                  nodea[:href]=@domain+@dir+@dict[detailurl]     
+              end
+   end 
+  return    _node
+end
+
+def  getDoc(_url)
+     _url=uri = URI.parse(URI.escape(_url))
      charset = nil
      begin
          html = open(_url) do |f|
@@ -75,55 +122,55 @@ def  getdoc(_url)
             f.read
          end
      doc = Nokogiri::HTML.parse(html, nil, charset)
+     
      rescue
           puts("-----------------cannot not geturl : "+_url)
-          @dict[_url]="404.html"
           return
-     end
-
+    end
     return doc
 end
 
-def getdetailpage(_url,_file,_deep)
+def getSubPage(_url,_file,_deep)
       charset = nil
-
       if @dict[_url] then
           return
       end 
       if _deep>@def_deep then
           return
       end
-      
       @dict[_url]=_file
-         
       mfile = File.open('.'+@dir + _file, "w")
       myhtml=""
-      doc=getdoc(_url)
-     # //*[@id="page"]/div/div[2]/div/div[1]/div[1]
-      doc.xpath('//*[@id="page"]/div/div[2]/div/div[1]/div[1]').each do |node|
-           myhtml+=parse_node(node,_deep)
+      doc=getDoc(_url)
+      @sub_div_list.each do |div_a|
+           div_a[1].each do |node|
+               doc.xpath(node).remove 
+           end
+	   doc.xpath(div_a[0]).each do |node|
+                myhtml+=parse_node(node,_deep).to_html
+           end
       end
       mfile.puts(myhtml)
       mfile.close
 end
 
-def getindex
-     mfile = File.open('.'+@dir+"/top.html", "w") 
+def getHomePage
+     mfile = File.open('.'+@dir+"/top2.html", "w") 
      myhtml=""
-     doc=getdoc(@url) 
-     storyid=1
-     while storyid<=@storynum
- 
-	 doc.xpath('//*[@id="comp-top-story-'+storyid.to_s+'"]').each do |node|
-            myhtml+=parse_node(node,1)
+     doc=getDoc(@url) 
+     @home_div_list.each do |div_a|
+         div_a[1].each do |node|
+            doc.xpath(node).remove
+         end
+         doc.xpath(div_a[0]).each do |node|
+            myhtml+=parse_node(node,0).to_html
  	 end
-     storyid+=1
      end
     mfile.puts(myhtml)
     mfile.close
 end
 
 prepare
-readdic
-getindex
-savedic
+readDic
+getHomePage
+saveDic
