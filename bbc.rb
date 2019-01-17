@@ -8,7 +8,7 @@ require 'base64'
 
 @domain="http://vraku.com:8080"  #domain
 @dir='/autolab/'   #server dir saved
-@def_deep=2     #page deep copy
+@def_deep=30     #page deep copy
 
 @url = 'https://www.bbc.com/zhongwen/simp/'  # target
 @base_url='https://www.bbc.com'  
@@ -138,7 +138,9 @@ def getSubPage(_url,_file,_deep)
       if _deep>@def_deep then
           return
       end
-      @dict[_url]=_file
+      if _deep<@def_deep then  #the deepest page not to add to dict bacause It will cause no link problems in future 
+           @dict[_url]=_file
+      end
       mfile = File.open('.'+@dir + _file, "w")
       myhtml=""
       doc=getDoc(_url)
