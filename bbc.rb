@@ -16,19 +16,17 @@ require 'base64'
 @ignore_link_list=['/zhongwen/simp/institutional','#']  #ignore the links which  start with str in array
 @link_list=['/zhongwen/simp/']
 
-
 #支持div里面除去小div
 #[[div1,[div1_1,div1_2]],
 # [div2,[div2_1,div2_2]]]
-
-
 @home_div_list=[['//*[@id="comp-top-story-1"]',[]],
                 ['//*[@id="comp-top-story-2"]',[]],
                 ['//*[@id="comp-top-story-3"]',[]]]
-
-
 @sub_div_list=[['//*[@id="page"]/div/div[2]/div/div[1]/div[1]',['//*[@id="page"]/div/div[2]/div/div[1]/div[1]/div[1]/div/div/div[2]']]]
 
+@del_attri_list=['class','data-seconds','aria-hidden','property']
+@del_tag_list=['script']
+@replace_attri_value=[['div','id','bbccom_mpu_1_2','mm']]
 
 def  readDic
   f=File.open(@dic_file) do |file|
@@ -78,7 +76,6 @@ def  parse_node(_node,_deep)
 
      #######deal with <a>
     _node.css('a').each do |nodea|
-
               #expect /zh/XX   
               #case1:  <ui><li><a href=random_url></li></ui>
               #case2:  <image><a href=random_url></image>  
@@ -122,12 +119,59 @@ def  getDoc(_url)
             f.read
          end
      doc = Nokogiri::HTML.parse(html, nil, charset)
-     
      rescue
           puts("-----------------cannot not geturl : "+_url)
           return
-    end
-    return doc
+     end
+     return doc
+end
+
+def purlDoc(_doc)
+    repalceAttributeValue(_doc) 
+    delTags(_doc)
+    delAttributes(_doc)
+    return _doc
+end
+
+##not over
+def repalceAttributeValue(_doc)
+   @replace_attri_value.each do |rep_a |
+           css='[' + rep_a[1] + '="' + rep_a[2] + '"]'
+           puts css
+            #doc.at_css('[id="verify"]')
+           puts _doc.at_css(css) 
+        #  _doc.at_css(css).replace 
+   end
+   return  _doc 
+end
+
+def delTags(_doc)
+     @del_tag_list.each do |tag|
+       _doc.css(tag).remove
+     end
+    return  _doc
+end 
+
+def delAttributes(_doc)
+      @del_attri_list.each do |attri|
+         _doc.css('*').remove_attr(attri)         
+      end
+      return _doc
+end
+
+def  generatePage(_url,_div_list,_deep)
+      myhtml=""
+      doc=getDoc(_url)
+      doc=purlDoc(getDoc(_url))
+      _div_list.each do |div_a|
+           div_a[1].each do |node|
+               doc.xpath(node).remove
+           end
+           doc.xpath(div_a[0]).each do |node|
+                myhtml+=parse_node(node,_deep).to_html
+           end
+      end
+     return myhtml
 end
 
 def getSubPage(_url,_file,_deep)
@@ -142,34 +186,13 @@ def getSubPage(_url,_file,_deep)
            @dict[_url]=_file
       end
       mfile = File.open('.'+@dir + _file, "w")
-      myhtml=""
-      doc=getDoc(_url)
-      @sub_div_list.each do |div_a|
-           div_a[1].each do |node|
-               doc.xpath(node).remove 
-           end
-	   doc.xpath(div_a[0]).each do |node|
-                myhtml+=parse_node(node,_deep).to_html
-           end
-      end
-      mfile.puts(myhtml)
+      mfile.puts(generatePage(_url,@sub_div_list,_deep))
       mfile.close
 end
 
 def getHomePage
      mfile = File.open('.'+@dir+"/top2.html", "w") 
-     myhtml=""
-     doc=getDoc(@url) 
-     @home_div_list.each do |div_a|
-         div_a[1].each do |node|
-            doc.xpath(node).remove
-         end
-         doc.xpath(div_a[0]).each do |node|
-            myhtml+=parse_node(node,0).to_html
- 	 end
-     end
-    mfile.puts(myhtml)
-    mfile.close
+     mfile.puts(generatePage(@url,@home_div_list,0)).close
 end
 
 prepare
