@@ -10,3 +10,5 @@
 
 ## nokogiri使い方
 https://github.com/sparklemotion/nokogiri/wiki/Cheat-sheet
+https://kic-yuuki.hatenablog.com/entry/2019/06/18/091451
+
