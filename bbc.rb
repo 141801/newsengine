@@ -8,7 +8,7 @@ require 'base64'
 
 @domain="http://vraku.com:8080"  #domain
 @dir='/autolab/'   #server dir saved
-@def_deep=30     #page deep copy
+@def_deep=3     #page deep copy
 
 @url = 'https://www.bbc.com/zhongwen/simp/'  # target
 @base_url='https://www.bbc.com'
