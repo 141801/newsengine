@@ -7,3 +7,6 @@
 ## 课题 ##
 1.  调查对象div中只保留想要的属性方法
 2.  调查对象div中去除空节点的方法
+
+## nokogiri使い方
+https://github.com/sparklemotion/nokogiri/wiki/Cheat-sheet
