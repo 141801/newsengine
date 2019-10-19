@@ -7,3 +7,8 @@
 ## 课题 ##
 1.  调查对象div中只保留想要的属性方法
 2.  调查对象div中去除空节点的方法
+
+## nokogiri使い方
+* https://stackoverflow.com/questions/6096327/strip-style-attributes-with-nokogiri  #remote attribute
+* https://kic-yuuki.hatenablog.com/entry/2019/06/18/091451  
+
