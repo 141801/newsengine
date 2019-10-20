@@ -11,4 +11,6 @@
 ## nokogiri使い方
 * https://stackoverflow.com/questions/6096327/strip-style-attributes-with-nokogiri  #remote attribute
 * https://kic-yuuki.hatenablog.com/entry/2019/06/18/091451  
+* https://freebsd.sing.ne.jp/lang/ruby/04/04.html  ##a href=""#を取得
+* https://stackoverflow.com/questions/7697662/how-do-i-get-innerhtml-using-nokogiri-gem #inner_html
 
