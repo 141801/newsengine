@@ -17,9 +17,10 @@ def  getDoc(_url)
     end
     return doc
 end
-
+#url='https://www.bbc.com/zhongwen/simp/world-50110944'
+url='https://www.bbc.com/ukchina/simp/vert-cap-48638237'
 #url='https://www.bbc.com/zhongwen/simp/uk-50082986'
-url='https://www.bbc.com/zhongwen/simp/uk-49987997'
+#url='https://www.bbc.com/zhongwen/simp/chinese-news-50107703'
 doc = getDoc(url).css('.column--primary')
 puts doc.css('.story-body__h1')#get the colume primaryp
 
@@ -52,5 +53,31 @@ f.css('.bbccom_slot.mpu-ad').each do |node|
 	node.remove
 end
 
+f.css('a').each do |node|
+	   node.replace node.inner_html       
+end
+
+f.css('.off-screen').each do  |node|
+        node.remove
+end
+
+#f.css('off-story-image-copyrightscreen').each do  |node|
+#f.sss)0
+
+
+f.css('.media-caption__text').each do  |node|
+        node.remove
+
+end
+#edn
+
+f.css('.story-image-copyright').each do  |node|
+        node.remove
+end
+
+#^ px
+#f.xpath('//@class').remove
+f.xpath('//@width').remove
+f.xpath('//@height').remove
 
 puts f
