@@ -1,118 +1,9 @@
 require 'nokogiri'
-require 'open-uri'
-require 'fileutils'
-require 'base64'
+require 'open-uri' 
 
-@dict={}
-@dic_file='./dict.txt'
-
-@domain="http://vraku.com:8080"  #domain
-@dir='/autolab/'   #server dir saved
-@def_deep=3     #page deep copy
-
-@url = 'https://www.bbc.com/zhongwen/simp/'  # target
-@base_url='https://www.bbc.com'
-
-@ignore_link_list=['/zhongwen/simp/institutional','#']  #ignore the links which  start with str in array
-@link_list=['/zhongwen/simp/']
-
-#支持div里面除去小div
-#[[div1,[div1_1,div1_2]],
-# [div2,[div2_1,div2_2]]]
-@home_div_list=[['//*[@id="comp-top-story-1"]',[]],
-['//*[@id="comp-top-story-2"]',[]],
-['//*[@id="comp-top-story-3"]',[]]]
-@sub_div_list=[['//*[@id="page"]/div/div[2]/div/div[1]/div[1]',['//*[@id="page"]/div/div[2]/div/div[1]/div[1]/div[1]/div/div/div[2]']]]
-
-@del_attri_list=['class','data-seconds','aria-hidden','property']
-@del_tag_list=['script']
-#  div  |  id  |  target_value  |  replece_value
-@replace_attri_value=[['div','id','bbccom_mpu_1_2','mm']]
-
-def  readDic
-    f=File.open(@dic_file) do |file|
-        file.each_line do |labmen|
-            @dict[labmen.split(",")[0]]=labmen.split(",")[1]
-        end
-    end
-    f.close
-end
-
-def  saveDic
-    f=File.open(@dic_file,"w+") do |file|
-        @dict.each{|s| file.puts(s[0]+","+s[1])}
-    end
-    #   f.close  #way? error?
-end
-
-def prepare
-    FileUtils.mkdir_p('.'+@dir+"/details/")
-    if !File.exist?(@dic_file)
-        File.new(@dic_file,"w+")
-    end
-end
-
-def  getSerialNum
-    t = Time.now
-    tf="%10.9f" % t.to_f   #=> "1195280283.536151409"
-    return tf.to_s.split('.').join("")
-end
-
-def  parse_node(_node,_deep)
-    
-    ##deal with <image scr>
-    _node.css('img').each do |image|
-        if !image.attribute("src").value.start_with?("http") then
-            image.attribute("src").value=@base_url+image.attribute("src").value
-        end
-    end
-    
-    ##deal with div-src image
-    _node.css('div').each do |div|
-        if div.attribute("data-src") then
-            imagesrc=div.attribute("data-src")
-            div.replace '<img src="'+imagesrc+'"/>'
-        end
-    end
-    
-    #######deal with <a>
-    _node.css('a').each do |nodea|
-        #expect /zh/XX
-        #case1:  <ui><li><a href=random_url></li></ui>
-        #case2:  <image><a href=random_url></image>
-        if nodea[:href].start_with?(*@ignore_link_list)  then
-            begin
-                nodea.parent.remove
-                rescue =>e
-                puts e
-            end
-            next
-        end
-        
-        if !nodea[:href].start_with?(*@link_list)  then
-            begin
-                nodea.parent.remove
-                rescue =>e
-                puts e
-            end
-            next
-        end
-        puts  nodea[:href]
-        detailurl=@base_url+nodea[:href]
-        if !@dict[detailurl]
-            fname=getSerialNum+'.html'
-            nodea[:href]=@domain+@dir+'/details/'+fname   #rewrite the html link
-            filepath='/details/'+fname   #file path
-            getSubPage(detailurl,filepath,_deep+1)
-            else
-            nodea[:href]=@domain+@dir+@dict[detailurl]
-        end
-    end
-    return    _node
-end
 
 def  getDoc(_url)
-    _url=uri = URI.parse(URI.escape(_url))
+    _url=URI.parse(URI.escape(_url))
     charset = nil
     begin
         html = open(_url) do |f|
@@ -127,77 +18,118 @@ def  getDoc(_url)
     return doc
 end
 
-def purlDoc(_doc)
-    repalceAttributeValue(_doc)
-    delTags(_doc)
-    delAttributes(_doc)
-    return _doc
+
+url='https://www.bbc.com/zhongwen/simp/chinese-news-49971807'
+#url='https://www.bbc.com/zhongwen/simp/chinese-news-50083156'
+#url='https://www.bbc.com/zhongwen/simp/business-50096588'
+#url='https://www.bbc.com/zhongwen/simp/world-50060829'
+#url='https://www.bbc.com/zhongwen/simp/science-50123913'
+#url='https://www.bbc.com/zhongwen/simp/world-50128653'
+#url='https://www.bbc.com/zhongwen/simp/chinese-news-50123325'
+#url='https://www.bbc.com/zhongwen/simp/world-50110944'
+#url='https://www.bbc.com/ukchina/simp/vert-cap-48638237'
+#url='https://www.bbc.com/zhongwen/simp/uk-50082986'
+#url='https://www.bbc.com/zhongwen/simp/chinese-news-50107703'
+#doc = getDoc(url).css('.column--primary')
+doc=getDoc(url)
+puts doc.css('.story-body__h1')#get the colume primaryp
+
+
+doc.xpath('//@property').remove
+
+f=doc.css('.story-body__inner')[0]
+
+begin
+  f.css('.js-delayed-image-load').each do |node|
+	_src=node.attributes['data-src']
+	node.parent.replace '<img src="'+_src+'">'
+  end
+rescue
 end
 
-def repalceAttributeValue(_doc)
-    @replace_attri_value.each do |rep_a |
-        _doc.css(rep_a[0]).each do |ele|
-            if ele.attribute(rep_a[1])
-                if ele.attribute(rep_a[1]).value==rep_a[2]
-                    ele.attribute(rep_a[1]).value=rep_a[3]
-                end
-            end
-        end
-    end
-    return  _doc
+begin
+  f.css('.media-with-caption__caption').each do |node|
+	node.parent.remove
+  end
+rescue
 end
 
-def delTags(_doc)
-    @del_tag_list.each do |tag|
-        _doc.css(tag).remove
-    end
-    return  _doc
+begin
+  f.css('.story-body__line').each do |node|
+	node.remove
+  end
+rescue
 end
 
-def delAttributes(_doc)
-    @del_attri_list.each do |attri|
-        _doc.css('*').remove_attr(attri)
-    end
-    return _doc
+
+begin
+  f.css('.story-body__unordered-list').each do |node| 
+	node.remove
+  end
+rescue
 end
 
-def  generatePage(_url,_div_list,_deep)
-    myhtml=""
-    doc=getDoc(_url)
-    doc=purlDoc(getDoc(_url))
-    _div_list.each do |div_a|
-        div_a[1].each do |node|
-            doc.xpath(node).remove
-        end
-        doc.xpath(div_a[0]).each do |node|
-            myhtml+=parse_node(node,_deep).to_html
-        end
-    end
-    return myhtml
+begin
+  f.css('story-body__list-item').each do  |node|
+	node.remove
+  end
+rescue
 end
 
-def getSubPage(_url,_file,_deep)
-    charset = nil
-    if @dict[_url] then
-        return
-    end
-    if _deep>@def_deep then
-        return
-    end
-    if _deep<@def_deep then  #the deepest page not to add to dict bacause It will cause no link problems in future
-        @dict[_url]=_file
-    end
-    mfile = File.open('.'+@dir + _file, "w")
-    mfile.puts(generatePage(_url,@sub_div_list,_deep))
-    mfile.close
+begin
+  f.css('.bbccom_slot.mpu-ad').each do |node|
+	node.remove
+  end
+rescue
 end
 
-def getHomePage
-    mfile = File.open('.'+@dir+"/top2.html", "w")
-    mfile.puts(generatePage(@url,@home_div_list,0)).close
+
+begin
+  f.css('a').each do |node|
+	   node.replace node.inner_html       
+  end
+rescue
 end
 
-prepare
-readDic
-getHomePage
-saveDic
+
+begin
+  f.css('.off-screen').each do  |node|
+        node.remove
+  end
+rescue
+end
+
+
+begin
+  f.css('.media-caption__text').each do  |node|
+        node.remove
+
+  end
+rescue
+end
+
+begin
+   f.css('.story-image-copyright').each do  |node|
+        node.remove
+   end
+rescue
+end
+
+begin
+  f.xpath('//@width').remove
+rescue
+end
+
+begin
+  f.xpath('//@height').remove
+rescue
+end
+
+begin
+  f.css('.social-embed').each do |node|
+        node.remove
+  end
+rescue
+end
+
+puts f
