@@ -15,7 +15,7 @@
 * https://freebsd.sing.ne.jp/lang/ruby/04/04.html  ##a href=""#を取得
 * https://stackoverflow.com/questions/7697662/how-do-i-get-innerhtml-using-nokogiri-gem #inner_html
 
-## #wp rest api 批量导入
+## wp rest api 批量导入
 * https://developer.wordpress.org/rest-api/reference/posts/#create-a-post  #wp rest api 批量导入
 
 ## 价值
