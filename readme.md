@@ -16,7 +16,8 @@
 * https://stackoverflow.com/questions/7697662/how-do-i-get-innerhtml-using-nokogiri-gem #inner_html
 
 ## wp rest api 批量导入
-* https://developer.wordpress.org/rest-api/reference/posts/#create-a-post  #api
+* https://www.tam-tam.co.jp/tipsnote/cms/post10274.html  #実践 command
+* https://developer.wordpress.org/rest-api/reference/posts/#create-a-post  #api list
 * https://it-engineer-lab.com/archives/312  #php 
 ## 价值
 <pre>
@@ -24,3 +25,5 @@
  如何避祸：根据自己每天的选择列表来自动downlaod文章，并给出原文连接，每个网站每天5条。自少10个网站进行
  如何便于检索：去掉多有的属性，只有图文。标签，简要，图片手工设置
 </pre>
+
+
